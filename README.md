@@ -100,6 +100,9 @@ Faces.train(Faces.getTestFace("/tmp/s3/6.pgm"),"s3");
 Faces.train(Faces.getTestFace("/tmp/s3/7.pgm"),"s3");
 Faces.train(Faces.getTestFace("/tmp/s3/8.pgm"),"s3");
 Faces.updateDatabase(80);
+
+Faces.saveData("test.xml");
+
 Faces.find(Faces.getTestFace("/tmp/s1/1.pgm"));
 Faces.find(Faces.getTestFace("/tmp/s1/9.pgm"));
 Faces.find(Faces.getTestFace("/tmp/s1/10.pgm"));

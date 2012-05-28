@@ -54,12 +54,12 @@ namespace boost {
             ar & make_nvp("cols", g.cols);
             ar & make_nvp("rows", g.rows);
             ar & make_nvp("flags", g.flags);
-            ar & make_nvp("dims", g.dims);
-            if (boost::archive::xml_iarchive::is_loading::value) {
-                delete [] g.data;
-                g.data = new uchar[g.cols * g.rows * g.dims];
+            if (Archive::is_loading::value) {
+                if (g.data)
+                    delete [] g.data;
+                g.data = new uchar[g.cols * g.rows];
             }
-            ar & make_nvp("data", make_binary_object(g.data, g.cols * g.rows * g.dims));
+            ar & make_nvp("data", make_binary_object(g.data, g.cols * g.rows));
         }
     } // namespace serialization
 } // namespace boost
@@ -73,6 +73,7 @@ class UEigenfaces : public urbi::UObject {
         ar & make_nvp("faceWidth", faceWidth);
         ar & make_nvp("faceHeight", faceHeight);
         ar & make_nvp("numComponents", numComponents);
+        ar & make_nvp("threshold", thresh);
         ar & make_nvp("faces", faces);
     }
 
@@ -111,7 +112,7 @@ public:
     int getImageHeight();
 
     urbi::UImage getTestFace(std::string fileName);
-    
+
     double getThreshold();
     void setThreshold(double t);
 
@@ -122,7 +123,7 @@ private:
     Eigenfaces* eigenfaces;
     double distMean;
     int numComponents;
-    
+
     double thresh;
 };
 
