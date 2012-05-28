@@ -38,7 +38,21 @@ make
 
 ## MODULE FUNCTIONS ##
 
-
+UEigenfaces.init(1);            - initialize module  
+UEigenfaces.loadData("fileName.xml");   - load database from file
+UEigenfaces.saveData("fileName.xml");   - save database to file
+UEigenfaces.train(image, "label");              - add image with label to database
+UEigenfaces.updateDatabase(componentsCount); - update database by added images, PCA componetsCount stays for the number of significant elements that should be taken into the consideration 
+UEigenfaces.find(image);        - recognize image in database, returns label
+UEigenfaces.getFacesCount();    - return number of labels availabe in the database
+UEigenfaces.getFacesNames();    - return labels available in database       
+UEigenfaces.getFaceImagesCount(const std::string& name);    - return number of images for given label
+UEigenfaces.getFaceImage(const std::string& name, int number);  - return image with given label and number
+UEigenfaces.getImageWidth();    - return image width
+UEigenfaces.getImageHeight();   - return image height
+UEigenfaces.getTestFace(std::string fileName);  - load image from file
+UEigenfaces.getThreshold();     - returns threshold level used for finding label for given image
+UEigenfaces.setThreshold(double t);     - sets threshold level for finding label for given image
 
 ## USAGE ##
 
