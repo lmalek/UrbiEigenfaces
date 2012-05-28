@@ -26,10 +26,11 @@
 #include <boost/foreach.hpp>
 #include <fstream>
 
+
 using namespace std;
 using namespace urbi;
 
-UEigenfaces::UEigenfaces(const std::string& name) : UObject(name) {
+UEigenfaces::UEigenfaces(const std::string& name) : UObject(name), eigenfaces(NULL) {
     cerr << "[UEigenfaces]::UEigenfaces()" << endl;
     UBindFunction(UEigenfaces, init);
     faceWidth = 92;
@@ -40,13 +41,8 @@ UEigenfaces::~UEigenfaces() {
     cerr << "[UEigenfaces]::~UEigenfaces()" << endl;
 }
 
-void UEigenfaces::init(bool imageFlag, bool depthFlag, bool userFlag) {
+void UEigenfaces::init(int i) {
     cerr << "[UEigenfaces]::init()" << endl;
-
-    // Bind all variables
-    UBindVar(UEigenfaces, image);
-    UBindVar(UEigenfaces, imageWidth);
-    UBindVar(UEigenfaces, imageHeight);
 
     // Bind all functions
     UBindThreadedFunction(UEigenfaces, loadData, LOCK_INSTANCE);
@@ -58,6 +54,11 @@ void UEigenfaces::init(bool imageFlag, bool depthFlag, bool userFlag) {
     UBindFunction(UEigenfaces, getFacesNames);
     UBindFunction(UEigenfaces, getFaceImagesCount);
     UBindFunction(UEigenfaces, getFaceImage);
+    UBindFunction(UEigenfaces, getImageWidth);
+    UBindFunction(UEigenfaces, getImageHeight);
+    UBindFunction(UEigenfaces, getTestFace);
+    UBindFunction(UEigenfaces, getThreshold);
+    UBindFunction(UEigenfaces, setThreshold);
 }
 
 bool UEigenfaces::loadData(const std::string& fileName) {
@@ -77,7 +78,7 @@ bool UEigenfaces::loadData(const std::string& fileName) {
     }
 
     eigenfaces = new Eigenfaces(images, labels, numComponents);
-    std::string predicted = eigenfaces->predict(eigenfaces->mean(),distMean);
+    std::string predicted = eigenfaces->predict(eigenfaces->mean(), distMean);
     cout << "distMean = " << distMean << endl;
 
     return true;
@@ -96,30 +97,37 @@ bool UEigenfaces::train(urbi::UImage src, const std::string& name) {
     uchar channel_type;
     if (src.imageFormat == IMAGE_GREY8) {
         channel_type = CV_8UC1;
-    }
-    if (src.imageFormat == IMAGE_RGB) {
+    } else if (src.imageFormat == IMAGE_RGB) {
         channel_type = CV_8UC3;
     } else {
         throw std::runtime_error("[UEigenfaces]::find() : Unsupported image format: ");
     }
-    cv::Mat testSample(cv::Size(src.width, src.height), channel_type);
+    cv::Mat testSample(cv::Size(src.width, src.height), channel_type, src.data);
     if (channel_type == CV_8UC3)
         cvtColor(testSample, testSample, CV_RGB2GRAY);
     cv::resize(testSample, testSample, cv::Size(faceWidth, faceHeight));
     FacePair newFace = make_pair(testSample, name);
     faces.push_back(newFace);
+    //    images.push_back(testSample);
+    //    labels.push_back(name);
 }
 
-bool UEigenfaces::updateDatabase() {
+bool UEigenfaces::updateDatabase(int components) {
     std::vector<std::string> labels;
     std::vector<cv::Mat> images;
 
+    numComponents = components;
+    if (eigenfaces)
+        delete eigenfaces;
+
     BOOST_FOREACH(FacePair p, faces) {
-        images.push_back(p.first);
+        cv::Mat tmp = Mat(cv::Size(p.first.cols, p.first.rows), p.first.type(), p.first.data);
+        images.push_back(tmp);
         labels.push_back(p.second);
     }
     eigenfaces = new Eigenfaces(images, labels, numComponents);
     eigenfaces->predict(eigenfaces->mean(), distMean);
+    thresh = distMean;
     cout << "distMean = " << distMean << endl;
 }
 
@@ -129,53 +137,59 @@ std::string UEigenfaces::find(urbi::UImage src) const {
     std::string predicted;
     if (src.imageFormat == IMAGE_GREY8) {
         channel_type = CV_8UC1;
-    }
-    if (src.imageFormat == IMAGE_RGB) {
+    } else if (src.imageFormat == IMAGE_RGB) {
         channel_type = CV_8UC3;
     } else {
         throw std::runtime_error("[UEigenfaces]::find() : Unsupported image format: ");
     }
-    cv::Mat testSample(cv::Size(src.width, src.height), channel_type);
+    cv::Mat testSample(cv::Size(src.width, src.height), channel_type, src.data);
     if (channel_type == CV_8UC3)
         cvtColor(testSample, testSample, CV_RGB2GRAY);
     cv::resize(testSample, testSample, cv::Size(faceWidth, faceHeight));
     predicted = eigenfaces->predict(testSample, dist);
-    if (dist > distMean)
+    if (dist > thresh) {
+        cerr << "! predicted = " << predicted << " dist = " << dist << " thresh =  " << thresh << endl;
         predicted = "";
+    }
     return predicted;
 }
 
 int UEigenfaces::getFacesCount() const {
-    std::vector<std::string> labels;
+    std::vector<std::string> labels2;
 
     BOOST_FOREACH(FacePair p, faces) {
-        labels.push_back(p.second);
+        labels2.push_back(p.second);
     }
-    std::sort(labels.begin(), labels.end());
-    labels.erase(std::unique(labels.begin(), labels.end()), labels.end());
-    return labels.size();
+    std::sort(labels2.begin(), labels2.end());
+    labels2.erase(std::unique(labels2.begin(), labels2.end()), labels2.end());
+    return labels2.size();
 }
 
 std::vector<std::string> UEigenfaces::getFacesNames() {
-    std::vector<std::string> labels;
+    std::vector<std::string> labels2;
 
     BOOST_FOREACH(FacePair p, faces) {
-        labels.push_back(p.second);
+        labels2.push_back(p.second);
     }
-    std::sort(labels.begin(), labels.end());
-    labels.erase(std::unique(labels.begin(), labels.end()), labels.end());
-    return labels;
+    std::sort(labels2.begin(), labels2.end());
+    labels2.erase(std::unique(labels2.begin(), labels2.end()), labels2.end());
+    return labels2;
 }
 
-int UEigenfaces::getFaceImagesCount(const std::string& name) {
+int UEigenfaces::getFaceImagesCount(const std::string& label) {
     int index = 0;
     urbi::UImage result;
     result.imageFormat = IMAGE_UNKNOWN;
 
     BOOST_FOREACH(FacePair p, faces) {
-        if (p.second == name)
+        if (p.second == label)
             index++;
     }
+
+    //    BOOST_FOREACH(std::string p, labels) {
+    //        if (p == label)
+    //            index++;
+    //    }
     return index;
 }
 
@@ -200,7 +214,61 @@ urbi::UImage UEigenfaces::getFaceImage(const std::string& name, int number) {
             index++;
         }
     }
+
+    //    std::vector<cv::Mat>::iterator imgIter = images.begin();
+    //    BOOST_FOREACH(std::string p, labels) {
+    //        if (p == name) {
+    //            if (index == number) {
+    //                urbi::UImage mBinImage;
+    //                mBinImage.imageFormat = IMAGE_GREY8;
+    //                mBinImage.width = imgIter->cols;
+    //                mBinImage.height = imgIter->rows;
+    //                mBinImage.size = mBinImage.width * mBinImage.height;
+    //                mBinImage.data = new uint8_t[mBinImage.size];
+    //                memcpy(mBinImage.data, imgIter->data, mBinImage.size);
+    //                result = mBinImage;
+    //                return result;
+    //            }
+    //            index++;
+    //        }
+    //        imgIter++;
+    //    }
+    throw std::runtime_error("[UEigenfaces]::find() : Invalid image number");
     return result;
 }
+
+int UEigenfaces::getImageWidth() {
+    return faceWidth;
+}
+
+int UEigenfaces::getImageHeight() {
+    return faceHeight;
+}
+
+urbi::UImage UEigenfaces::getTestFace(std::string fileName) {
+    Mat image = imread(fileName, 0);
+    resize(image, image, Size(faceWidth, faceHeight));
+    if (image.flags == CV_8UC3)
+        cvtColor(image, image, CV_RGB2GRAY);
+    if (image.flags != CV_8UC1)
+        std::runtime_error("[UEigenfaces]::getTestFace() : Invalid image format");
+    urbi::UImage mBinImage;
+    mBinImage.imageFormat = IMAGE_GREY8;
+    mBinImage.width = image.cols;
+    mBinImage.height = image.rows;
+    mBinImage.size = mBinImage.width * mBinImage.height;
+    mBinImage.data = new uint8_t[mBinImage.size];
+    memcpy(mBinImage.data, image.data, mBinImage.size);
+    return mBinImage;
+}
+
+double UEigenfaces::getThreshold() {
+    return thresh;
+}
+
+void UEigenfaces::setThreshold(double t) {
+    thresh = t;
+}
+
 
 UStart(UEigenfaces);

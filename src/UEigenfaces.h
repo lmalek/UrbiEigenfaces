@@ -74,6 +74,8 @@ class UEigenfaces : public urbi::UObject {
         ar & make_nvp("faceHeight", faceHeight);
         ar & make_nvp("numComponents", numComponents);
         ar & make_nvp("faces", faces);
+//        ar & make_nvp("labels", labels);
+//        ar & make_nvp("images", images);
     }
 
 public:
@@ -82,16 +84,9 @@ public:
 
     /** 
      * Initialization function
-     * Responsible for initalization of OpenNI camponents. Available in URBI
-     * 
-     * @param image Activate OpenNI component allowing to geather image from
-     *              Kinect
-     * @param depth Activate OpenNI component allowing to geather depth map
-     *              from Kinect
-     * @param user  Activete OpenNI component allwoing to recognize user
-     *              skeleton
+     * Responsible for initalization
      */
-    void init(bool image, bool depth, bool user);
+    void init(int);
 
 
     bool loadData(const std::string& fileName);
@@ -101,7 +96,7 @@ public:
     // Train
     bool train(urbi::UImage src, const std::string& name);
 
-    bool updateDatabase();
+    bool updateDatabase(int components);
 
     // Find
     std::string find(urbi::UImage src) const;
@@ -114,10 +109,13 @@ public:
 
     urbi::UImage getFaceImage(const std::string& name, int number);
 
+    int getImageWidth();
+    int getImageHeight();
 
-    urbi::UVar image; /**< Image from Kinect camera */
-    urbi::UVar imageWidth; /**< Image width from Kinect camera */
-    urbi::UVar imageHeight; /**< Image height from Kinect camera */
+    urbi::UImage getTestFace(std::string fileName);
+    
+    double getThreshold();
+    void setThreshold(double t);
 
 private:
     int faceWidth;
@@ -126,6 +124,12 @@ private:
     Eigenfaces* eigenfaces;
     double distMean;
     int numComponents;
+    
+    double thresh;
+
+    //vector<Mat> images;
+    //vector<std::string> labels;
+
 };
 
 #endif	/* UEIGENFACES_H */
