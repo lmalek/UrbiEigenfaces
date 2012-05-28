@@ -108,8 +108,6 @@ bool UEigenfaces::train(urbi::UImage src, const std::string& name) {
     cv::resize(testSample, testSample, cv::Size(faceWidth, faceHeight));
     FacePair newFace = make_pair(testSample, name);
     faces.push_back(newFace);
-    //    images.push_back(testSample);
-    //    labels.push_back(name);
 }
 
 bool UEigenfaces::updateDatabase(int components) {
@@ -185,11 +183,6 @@ int UEigenfaces::getFaceImagesCount(const std::string& label) {
         if (p.second == label)
             index++;
     }
-
-    //    BOOST_FOREACH(std::string p, labels) {
-    //        if (p == label)
-    //            index++;
-    //    }
     return index;
 }
 
@@ -214,25 +207,6 @@ urbi::UImage UEigenfaces::getFaceImage(const std::string& name, int number) {
             index++;
         }
     }
-
-    //    std::vector<cv::Mat>::iterator imgIter = images.begin();
-    //    BOOST_FOREACH(std::string p, labels) {
-    //        if (p == name) {
-    //            if (index == number) {
-    //                urbi::UImage mBinImage;
-    //                mBinImage.imageFormat = IMAGE_GREY8;
-    //                mBinImage.width = imgIter->cols;
-    //                mBinImage.height = imgIter->rows;
-    //                mBinImage.size = mBinImage.width * mBinImage.height;
-    //                mBinImage.data = new uint8_t[mBinImage.size];
-    //                memcpy(mBinImage.data, imgIter->data, mBinImage.size);
-    //                result = mBinImage;
-    //                return result;
-    //            }
-    //            index++;
-    //        }
-    //        imgIter++;
-    //    }
     throw std::runtime_error("[UEigenfaces]::find() : Invalid image number");
     return result;
 }

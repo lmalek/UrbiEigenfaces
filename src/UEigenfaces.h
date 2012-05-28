@@ -74,8 +74,6 @@ class UEigenfaces : public urbi::UObject {
         ar & make_nvp("faceHeight", faceHeight);
         ar & make_nvp("numComponents", numComponents);
         ar & make_nvp("faces", faces);
-//        ar & make_nvp("labels", labels);
-//        ar & make_nvp("images", images);
     }
 
 public:
@@ -126,10 +124,6 @@ private:
     int numComponents;
     
     double thresh;
-
-    //vector<Mat> images;
-    //vector<std::string> labels;
-
 };
 
 #endif	/* UEIGENFACES_H */
